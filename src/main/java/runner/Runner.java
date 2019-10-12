@@ -5,11 +5,8 @@ import category.YearlyCategory;
 import formatter.FormatTypes;
 import formatter.Formatter;
 import formatter.PersonalExpensesDocFileFormatter;
-import parser.Parser;
-import parser.QuickenParser;
 import processor.Processor;
 import processor.QuickenProcessor;
-import reader.FileContentsExtractor;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -23,9 +20,10 @@ public class Runner {
     String filePath = "C:\\Users\\Chris\\Desktop\\TempQuicken\\Book1.txt";
     String year = "2019";
     Month month = Month.SEPTEMBER;
-    Map<String, String> categoryMap = defineIndividaulCategoryMap();
+    Map<String, String> categoryMap = defineIndividualCategoryMap();
     FormatTypes formatType = FormatTypes.CATEGORY_NAME_BY_BUDGETED_SPENT_DIFFERENCE;
-    writeFormattedQuickenFile(categoryMap, formatType, filePath, year, month);
+    int numberOfUnMappedCategories = 100;
+    writeFormattedQuickenFile(categoryMap, formatType, filePath, year, month, numberOfUnMappedCategories);
 
   }
 
@@ -33,11 +31,12 @@ public class Runner {
                                                 FormatTypes formatTypes,
                                                 String filePath,
                                                 String year,
-                                                Month month) {
+                                                Month month,
+                                                int numberOfUnMappedCategories) {
     Processor processor = new QuickenProcessor();
     List<YearlyCategory> yearlyCategories = processor.process(filePath, year);
 
-    Formatter formatter = new PersonalExpensesDocFileFormatter(categoryMap, formatTypes);
+    Formatter formatter = new PersonalExpensesDocFileFormatter(categoryMap, formatTypes, numberOfUnMappedCategories);
     List<String> months = formatter.format(yearlyCategories, month);
     try (FileWriter fileWriter = new FileWriter("C:\\Users\\Chris\\Desktop\\TempQuicken\\output.txt")) {
       for (String string : months) {
@@ -47,12 +46,9 @@ public class Runner {
     } catch (IOException exception) {
 
     }
-
-    System.out.println("hi");
-
   }
 
-  private static Map<String, String> defineIndividaulCategoryMap() {
+  private static Map<String, String> defineIndividualCategoryMap() {
     Map<String, String> categoryMap = new HashMap<>();
     categoryMap.put("Auto & Transport", REMOVE);
     categoryMap.put("SavingsCategories:Car Insurance", REMOVE);

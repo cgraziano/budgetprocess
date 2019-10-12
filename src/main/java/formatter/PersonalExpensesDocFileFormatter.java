@@ -11,17 +11,35 @@ import java.util.stream.Collectors;
 public class PersonalExpensesDocFileFormatter implements Formatter {
   private Map<String, String> categoryMap;
   private FormatTypes formatType;
+  private int expectedNumberOfUnMappedCategories;
   private static final String REMOVE = "REMOVE";
 
   /**
-   * If a category is not found within map, the categories without a map will be
-   * accumulated in a the MissingFromCategoryMapException message.
+   * If a category is not found within map, the un-mapped categories will be
+   * accumulated in a MissingFromCategoryMapException message.
    * If the category maps to "REMOVE", the category is not printed in the final output.
    * @param categoryMap
    */
   public PersonalExpensesDocFileFormatter(Map<String, String> categoryMap, FormatTypes formatType) {
     setCategoryMap(categoryMap);
     setFormatType(formatType);
+    setExpectedNumberOfUnMappedCategories(0);
+  }
+
+  /**
+   * If a category is not found within map, the number un-mapped categories will be
+   * compared against the expected number of un-mapped categories. If the
+   * the expected number of un-mapped categories does not match the actual
+   * number of un-mapped categories, then the un-mapped categories will be
+   * accumulated in a MissingFromCategoryMapException message.
+   * If the category maps to "REMOVE", the category is not printed in the final output.
+   * @param categoryMap
+   */
+  public PersonalExpensesDocFileFormatter(Map<String, String> categoryMap, FormatTypes formatType,
+                                          int expectedNumberOfUnMappedCategories) {
+    setCategoryMap(categoryMap);
+    setFormatType(formatType);
+    setExpectedNumberOfUnMappedCategories(expectedNumberOfUnMappedCategories);
   }
 
   @Override
@@ -57,6 +75,14 @@ public class PersonalExpensesDocFileFormatter implements Formatter {
     this.formatType = formatType;
   }
 
+  public int getExpectedNumberOfUnMappedCategories() {
+    return expectedNumberOfUnMappedCategories;
+  }
+
+  public void setExpectedNumberOfUnMappedCategories(int expectedNumberOfUnMappedCategories) {
+    this.expectedNumberOfUnMappedCategories = expectedNumberOfUnMappedCategories;
+  }
+
   private boolean shouldYearlyCategoryBeRemoved(YearlyCategory yearlyCategory) {
     boolean shouldRemove = false;
     String name = yearlyCategory.getNameOfBudgeted();
@@ -86,10 +112,12 @@ public class PersonalExpensesDocFileFormatter implements Formatter {
   private void checkThatAllCategoriesHaveMapping(List<YearlyCategory> yearlyCategories) {
     List<YearlyCategory> categoriesWithoutMap = yearlyCategories
             .stream()
-            .filter(x -> !getCategoryMap().containsKey(x))
+            .filter(x -> !getCategoryMap().containsKey(x.getNameOfBudgeted()))
             .collect(Collectors.toList());
-    if (!categoriesWithoutMap.isEmpty()) {
-      StringBuilder builder = new StringBuilder("The following categories are missing from the category map: ");
+    if (!categoriesWithoutMap.isEmpty() && categoriesWithoutMap.size() != getExpectedNumberOfUnMappedCategories()) {
+      StringBuilder builder = new StringBuilder("There are " );
+      builder.append(categoriesWithoutMap.size());
+      builder.append(" categories missing from the category map: ");
       builder.append(categoriesWithoutMap
               .stream()
               .map(x -> x.getNameOfBudgeted())
