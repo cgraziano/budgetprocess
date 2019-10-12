@@ -14,7 +14,8 @@ public class PersonalExpensesDocFileFormatter implements Formatter {
   private static final String REMOVE = "REMOVE";
 
   /**
-   * If category is not found within map, the name within yearlyCategories is used.
+   * If a category is not found within map, the categories without a map will be
+   * accumulated in a the MissingFromCategoryMapException message.
    * If the category maps to "REMOVE", the category is not printed in the final output.
    * @param categoryMap
    */
@@ -25,14 +26,13 @@ public class PersonalExpensesDocFileFormatter implements Formatter {
 
   @Override
   public List<String> format(List<YearlyCategory> yearlyCategories, Month month) {
-    List<YearlyCategory> finalYearlyCategories = yearlyCategories.stream()
-            .filter(x -> !shouldYearlyCategoryBeRemoved(x))
-            .collect(Collectors.toList());
+    checkThatAllCategoriesHaveMapping(yearlyCategories);
+    List<YearlyCategory> finalYearlyCategories = performRemoveAction(yearlyCategories);
     for (YearlyCategory yearlyCategory : finalYearlyCategories) {
       String yearlyCategoryName = yearlyCategory.getNameOfBudgeted();
-      String formatedName = formatCategoryName(yearlyCategoryName);
-      yearlyCategory.setNameOfBudgeted(formatedName);
-      yearlyCategory.setNameOfMonthlyCategories(formatedName);
+      String formattedName = formatCategoryName(yearlyCategoryName);
+      yearlyCategory.setNameOfBudgeted(formattedName);
+      yearlyCategory.setNameOfMonthlyCategories(formattedName);
     }
     List<String> formattedLines = finalYearlyCategories.stream()
             .map(x -> x.getMonthlyCategory(month))
@@ -67,6 +67,12 @@ public class PersonalExpensesDocFileFormatter implements Formatter {
     return shouldRemove;
   }
 
+  private List<YearlyCategory> performRemoveAction(List<YearlyCategory> yearlyCategories) {
+    return yearlyCategories.stream()
+            .filter(x -> !shouldYearlyCategoryBeRemoved(x))
+            .collect(Collectors.toList());
+  }
+
   /**
    * If original name is not found in category mapping, then no modification is done ot the name.
    * Assuming that REMOVE filtering has already been done.
@@ -75,5 +81,23 @@ public class PersonalExpensesDocFileFormatter implements Formatter {
    */
   private String formatCategoryName(String originalName) {
     return getCategoryMap().containsKey(originalName) ? getCategoryMap().get(originalName) : originalName;
+  }
+
+  private void checkThatAllCategoriesHaveMapping(List<YearlyCategory> yearlyCategories) {
+    List<YearlyCategory> categoriesWithoutMap = yearlyCategories
+            .stream()
+            .filter(x -> !getCategoryMap().containsKey(x))
+            .collect(Collectors.toList());
+    if (!categoriesWithoutMap.isEmpty()) {
+      StringBuilder builder = new StringBuilder("The following categories are missing from the category map: ");
+      builder.append(categoriesWithoutMap
+              .stream()
+              .map(x -> x.getNameOfBudgeted())
+              .collect(Collectors.joining(", ")));
+      String errorMessage = builder.toString();
+      throw new MissingFromCategoryMapException(errorMessage);
+    }
+
+
   }
 }
