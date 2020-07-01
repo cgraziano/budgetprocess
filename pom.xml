@@ -10,7 +10,7 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <log4jVersion>2.11.1</log4jVersion>
+        <log4jVersion>2.13.3</log4jVersion>
     </properties>
 
     <build>
